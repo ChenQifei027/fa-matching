@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from datetime import datetime
 from core.database import init_db, insert_institution, list_institutions, get_institution, \
     update_institution, delete_institution, insert_investment_record, list_investment_records
-from core.enricher import enrich_institution
 from core.scraper import scrape_institution_investments
 
 load_dotenv()
@@ -46,10 +45,15 @@ with tab_add:
                     fa_fee_note=fa_fee_note, response_style=response_style,
                     track_updates=1 if track else 0
                 )
-                with st.spinner(f"正在查询「{name}」的公开信息..."):
-                    enriched = enrich_institution(name)
-                    update_institution(DB_PATH, iid, **{k: v for k, v in enriched.items() if v})
-                st.success(f"机构「{name}」已添加并补全基本信息")
+                with st.spinner(f"正在从 IT桔子 抓取「{name}」的信息..."):
+                    result = scrape_institution_investments(name, BROWSER_STATE)
+                    inst_info = {k: v for k, v in result["institution"].items() if v}
+                    if inst_info:
+                        update_institution(DB_PATH, iid, **inst_info)
+                    for r in result["records"]:
+                        insert_investment_record(DB_PATH, institution_id=iid, **r)
+                    update_institution(DB_PATH, iid, last_scraped_at=datetime.now().isoformat())
+                st.success(f"机构「{name}」已添加，抓取到 {len(result['records'])} 条投资记录")
                 st.rerun()
 
 with tab_import:
@@ -84,9 +88,12 @@ with tab_list:
         if col_refresh.button(f"🔄 全量刷新（{len(tracked)} 家）"):
             progress = st.progress(0)
             for idx, inst in enumerate(tracked):
-                with st.spinner(f"正在抓取「{inst['name']}」的投资记录..."):
-                    records = scrape_institution_investments(inst["name"], BROWSER_STATE)
-                    for r in records:
+                with st.spinner(f"正在抓取「{inst['name']}」的信息..."):
+                    result = scrape_institution_investments(inst["name"], BROWSER_STATE)
+                    inst_info = {k: v for k, v in result["institution"].items() if v}
+                    if inst_info:
+                        update_institution(DB_PATH, inst["id"], **inst_info)
+                    for r in result["records"]:
                         insert_investment_record(DB_PATH, institution_id=inst["id"], **r)
                     update_institution(DB_PATH, inst["id"],
                                        last_scraped_at=datetime.now().isoformat())
@@ -167,12 +174,15 @@ with tab_list:
                     col_rec.text(f"已记录 {len(records)} 条投资记录")
                     if col_scrape.button("🔄 刷新记录"):
                         with st.spinner("正在从 IT桔子 抓取..."):
-                            new_records = scrape_institution_investments(inst["name"], BROWSER_STATE)
-                            for r in new_records:
+                            result = scrape_institution_investments(inst["name"], BROWSER_STATE)
+                            inst_info = {k: v for k, v in result["institution"].items() if v}
+                            if inst_info:
+                                update_institution(DB_PATH, selected_iid, **inst_info)
+                            for r in result["records"]:
                                 insert_investment_record(DB_PATH, institution_id=selected_iid, **r)
                             update_institution(DB_PATH, selected_iid,
                                                last_scraped_at=datetime.now().isoformat())
-                        st.success(f"抓取完成，新增 {len(new_records)} 条")
+                        st.success(f"抓取完成，新增 {len(result['records'])} 条")
                         st.rerun()
 
                     if records:

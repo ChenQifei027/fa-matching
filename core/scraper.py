@@ -7,7 +7,7 @@ import time
 from typing import Optional
 
 
-async def _scrape_institution_investments(name: str, state_path: str) -> list:
+async def _scrape_institution_investments(name: str, state_path: str) -> dict:
     from browser_use import Agent
     from browser_use.browser.browser import Browser, BrowserConfig
     from core.llm import get_langchain_llm
@@ -16,32 +16,36 @@ async def _scrape_institution_investments(name: str, state_path: str) -> list:
     llm = get_langchain_llm()
 
     task = f"""
-    在 IT桔子网站（https://www.itjuzi.com）上查找投资机构"{name}"的投资记录。
+    在 IT桔子网站（https://www.itjuzi.com）上查找投资机构"{name}"的完整信息。
     步骤：
     1. 打开 https://www.itjuzi.com/investfirm，搜索"{name}"
     2. 点击该机构的详情页
-    3. 找到"投资案例"或"投资记录"列表
-    4. 收集所有投资记录，每条包含：被投公司名、所属行业、融资轮次、融资金额、投资时间
-    5. 以 JSON 数组格式返回，格式：
-       [{{"company_name": "", "sector": "", "stage": "", "amount": "", "invested_date": ""}}]
-    只返回 JSON 数组，不要其他内容。
+    3. 收集机构基本信息：官网、成立年份、管理规模(AUM)、当前基金期数、主要合伙人、偏好赛道、偏好阶段
+    4. 找到"投资案例"或"投资记录"列表，收集所有投资记录
+    5. 以 JSON 格式返回：
+       {{"institution": {{"website": "", "founded_year": "", "aum": "", "current_fund": "", "key_partners": "", "preferred_sectors": "", "preferred_stages": ""}},
+        "records": [{{"company_name": "", "sector": "", "stage": "", "amount": "", "invested_date": ""}}]}}
+    只返回 JSON，不要其他内容。
     """
 
     agent = Agent(task=task, llm=llm, browser=browser)
     try:
         result = await agent.run()
-        raw = result.final_result() or "[]"
+        raw = result.final_result() or "{}"
         raw = re.sub(r"^```json\s*|\s*```$", "", raw.strip(), flags=re.MULTILINE)
-        records = json.loads(raw)
-        return records if isinstance(records, list) else []
+        data = json.loads(raw)
+        return {
+            "institution": data.get("institution", {}) if isinstance(data, dict) else {},
+            "records": data.get("records", []) if isinstance(data, dict) else [],
+        }
     except Exception as e:
         print(f"[scraper] 爬取失败 {name}: {e}")
-        return []
+        return {"institution": {}, "records": []}
     finally:
         await browser.close()
 
 
-def scrape_institution_investments(name: str, state_path: str) -> list:
+def scrape_institution_investments(name: str, state_path: str) -> dict:
     """同步包装器，供 Streamlit 调用。加随机延迟避免触发风控。"""
     time.sleep(random.uniform(2, 5))
     return asyncio.run(_scrape_institution_investments(name, state_path))
