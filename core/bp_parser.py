@@ -1,7 +1,6 @@
 # core/bp_parser.py
 import json
 import re
-import anthropic
 
 def extract_text_from_pdf(file_path: str) -> str:
     try:
@@ -49,14 +48,9 @@ BP 文本：
 
 只返回 JSON，不要其他内容。"""
 
-def extract_project_info(text: str, api_key: str) -> dict:
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": EXTRACT_PROMPT.format(text=text[:8000])}]
-    )
-    raw = response.content[0].text.strip()
+def extract_project_info(text: str, api_key: str = "") -> dict:
+    from core.llm import call_llm
+    raw = call_llm(EXTRACT_PROMPT.format(text=text[:8000])).strip()
     raw = re.sub(r"^```json\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
     try:
         data = json.loads(raw)

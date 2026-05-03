@@ -8,14 +8,14 @@ from core.matcher import match_project_to_institutions, match_institution_to_pro
 
 load_dotenv()
 DB_PATH = os.getenv("DB_PATH", "data/fa_matching.db")
-API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+from core.llm import llm_is_configured
 
 init_db(DB_PATH)
 
 st.title("🔗 匹配推荐")
 
-if not API_KEY:
-    st.error("请先在「设置」页面配置 Claude API Key")
+if not llm_is_configured():
+    st.error("请先在「设置」页面配置推理模型")
     st.stop()
 
 col_left, col_right = st.columns(2)
@@ -52,8 +52,8 @@ with col_left:
                     )
                     enriched.append({**inst, "investment_records_summary": summary})
 
-                with st.spinner("Claude 正在分析匹配度..."):
-                    results = match_project_to_institutions(project, enriched, API_KEY)
+                with st.spinner("AI 正在分析匹配度..."):
+                    results = match_project_to_institutions(project, enriched)
 
                 st.session_state["p2i_results"] = results
                 st.session_state["p2i_project_name"] = selected_project_name
@@ -96,8 +96,8 @@ with col_right:
             if not projects:
                 st.warning("项目库为空，请先上传 BP")
             else:
-                with st.spinner("Claude 正在分析匹配度..."):
-                    results = match_institution_to_projects(enriched_institution, projects, API_KEY)
+                with st.spinner("AI 正在分析匹配度..."):
+                    results = match_institution_to_projects(enriched_institution, projects)
 
                 st.session_state["i2p_results"] = results
                 st.session_state["i2p_inst_name"] = selected_inst_name

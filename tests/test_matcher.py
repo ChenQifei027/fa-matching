@@ -1,6 +1,4 @@
 # tests/test_matcher.py
-import pytest
-from unittest.mock import MagicMock
 from core.matcher import match_project_to_institutions, match_institution_to_projects
 
 SAMPLE_PROJECT = {
@@ -18,17 +16,17 @@ SAMPLE_INSTITUTIONS = [
      "known_preferences": "偏好早期", "investment_records_summary": "知乎(社区),VIPKID(教育)"},
 ]
 
+
 def test_match_project_to_institutions(mocker):
-    mock_client = mocker.patch("core.matcher.anthropic.Anthropic")
-    mock_instance = MagicMock()
-    mock_client.return_value = mock_instance
-    mock_instance.messages.create.return_value = MagicMock(
-        content=[MagicMock(text='[{"institution_id": 2, "institution_name": "真格基金", "match_level": "高", "reason": "偏好AI早期项目，Pre-A阶段匹配"}, {"institution_id": 1, "institution_name": "红杉中国", "match_level": "中", "reason": "投资过AI项目，但偏好A轮以后"}]')]
+    mocker.patch(
+        "core.llm.call_llm",
+        return_value='[{"institution_id": 2, "institution_name": "真格基金", "match_level": "高", "reason": "偏好AI早期"}, {"institution_id": 1, "institution_name": "红杉中国", "match_level": "中", "reason": "投资过AI"}]'
     )
-    results = match_project_to_institutions(SAMPLE_PROJECT, SAMPLE_INSTITUTIONS, api_key="test")
+    results = match_project_to_institutions(SAMPLE_PROJECT, SAMPLE_INSTITUTIONS)
     assert len(results) == 2
     assert results[0]["match_level"] == "高"
     assert "reason" in results[0]
+
 
 SAMPLE_INSTITUTION = {
     "id": 1, "name": "真格基金", "preferred_sectors": "AI,教育",
@@ -45,13 +43,12 @@ SAMPLE_PROJECTS = [
      "location": "北京", "financing_need": "1000万"},
 ]
 
+
 def test_match_institution_to_projects(mocker):
-    mock_client = mocker.patch("core.matcher.anthropic.Anthropic")
-    mock_instance = MagicMock()
-    mock_client.return_value = mock_instance
-    mock_instance.messages.create.return_value = MagicMock(
-        content=[MagicMock(text='[{"project_id": 2, "project_name": "慧学教育", "match_level": "高", "reason": "教育赛道，天使阶段，符合历史投资风格"}, {"project_id": 1, "project_name": "智检科技", "match_level": "中", "reason": "AI赛道匹配，Pre-A阶段符合"}]')]
+    mocker.patch(
+        "core.llm.call_llm",
+        return_value='[{"project_id": 2, "project_name": "慧学教育", "match_level": "高", "reason": "教育赛道匹配"}, {"project_id": 1, "project_name": "智检科技", "match_level": "中", "reason": "AI赛道"}]'
     )
-    results = match_institution_to_projects(SAMPLE_INSTITUTION, SAMPLE_PROJECTS, api_key="test")
+    results = match_institution_to_projects(SAMPLE_INSTITUTION, SAMPLE_PROJECTS)
     assert len(results) == 2
     assert results[0]["project_name"] == "慧学教育"

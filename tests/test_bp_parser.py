@@ -22,13 +22,8 @@ def test_extract_text_from_pptx(tmp_path):
     assert "工业质检" in text
 
 def test_extract_project_info_returns_required_fields(mocker):
-    mock_client = mocker.patch("core.bp_parser.anthropic.Anthropic")
-    mock_instance = MagicMock()
-    mock_client.return_value = mock_instance
-    mock_instance.messages.create.return_value = MagicMock(
-        content=[MagicMock(text='{"name": "智检科技", "sector": "AI", "sub_sector": "AI+工业质检", "stage": "Pre-A", "location": "深圳", "description": "基于AI的工业质检系统", "highlights": "准确率99.5%，已服务50家工厂", "financing_need": "3000万人民币"}')]
-    )
-    result = extract_project_info("这是一段BP文本内容", api_key="test_key")
+    mocker.patch("core.llm.call_llm", return_value='{"name": "智检科技", "sector": "AI", "sub_sector": "AI+工业质检", "stage": "Pre-A", "location": "深圳", "description": "基于AI的工业质检系统", "highlights": "准确率99.5%，已服务50家工厂", "financing_need": "3000万人民币"}')
+    result = extract_project_info("这是一段BP文本内容")
     assert result["sector"] == "AI"
     assert result["sub_sector"] == "AI+工业质检"
     assert result["stage"] == "Pre-A"
@@ -36,12 +31,7 @@ def test_extract_project_info_returns_required_fields(mocker):
     assert "description" in result
 
 def test_extract_project_info_handles_partial_extraction(mocker):
-    mock_client = mocker.patch("core.bp_parser.anthropic.Anthropic")
-    mock_instance = MagicMock()
-    mock_client.return_value = mock_instance
-    mock_instance.messages.create.return_value = MagicMock(
-        content=[MagicMock(text='{"name": "某项目", "sector": "AI"}')]
-    )
-    result = extract_project_info("短文本", api_key="test_key")
+    mocker.patch("core.llm.call_llm", return_value='{"name": "某项目", "sector": "AI"}')
+    result = extract_project_info("短文本")
     assert result.get("sub_sector", "") == ""
     assert result["sector"] == "AI"

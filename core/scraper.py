@@ -10,10 +10,10 @@ from typing import Optional
 async def _scrape_institution_investments(name: str, state_path: str) -> list:
     from browser_use import Agent
     from browser_use.browser.browser import Browser, BrowserConfig
-    from langchain_anthropic import ChatAnthropic
+    from core.llm import get_langchain_llm
 
     browser = Browser(config=BrowserConfig(headless=False))
-    llm = ChatAnthropic(model="claude-sonnet-4-6")
+    llm = get_langchain_llm()
 
     task = f"""
     在 IT桔子网站（https://www.itjuzi.com）上查找投资机构"{name}"的投资记录。

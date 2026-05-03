@@ -10,7 +10,7 @@ from core.bp_parser import extract_text_from_file, extract_project_info
 load_dotenv()
 DB_PATH = os.getenv("DB_PATH", "data/fa_matching.db")
 BP_DIR = Path(os.getenv("BP_DIR", "data/bps"))
-API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+from core.llm import llm_is_configured
 
 init_db(DB_PATH)
 BP_DIR.mkdir(parents=True, exist_ok=True)
@@ -20,8 +20,8 @@ st.title("📁 项目管理")
 with st.expander("➕ 上传新 BP", expanded=False):
     uploaded = st.file_uploader("选择 BP 文件（PDF 或 PPTX）", type=["pdf", "pptx", "ppt"])
     if uploaded and st.button("开始解析"):
-        if not API_KEY:
-            st.error("请先在「设置」页面配置 Claude API Key")
+        if not llm_is_configured():
+            st.error("请先在「设置」页面配置推理模型")
         else:
             save_path = BP_DIR / uploaded.name
             with open(save_path, "wb") as f:
@@ -35,7 +35,7 @@ with st.expander("➕ 上传新 BP", expanded=False):
                 text = ""
 
             with st.spinner("Claude 正在解析结构化信息..."):
-                info = extract_project_info(text, api_key=API_KEY) if text else {}
+                info = extract_project_info(text) if text else {}
 
             st.subheader("提取结果（可修改后保存）")
             with st.form("save_project_form"):

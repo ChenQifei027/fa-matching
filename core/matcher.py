@@ -1,7 +1,6 @@
 # core/matcher.py
 import json
 import re
-import anthropic
 
 P2I_PROMPT = """你是一名专业的投资 FA 助手，请根据项目信息和投资机构列表，推荐最合适的投资机构。
 
@@ -63,31 +62,19 @@ def _parse_json_list(text: str) -> list:
         return []
 
 
-def match_project_to_institutions(project: dict, institutions: list, api_key: str) -> list:
-    client = anthropic.Anthropic(api_key=api_key)
+def match_project_to_institutions(project: dict, institutions: list, api_key: str = "") -> list:
+    from core.llm import call_llm
     project_info = _fmt_project(project)
     institutions_info = "\n".join(_fmt_institution(i) for i in institutions)
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": P2I_PROMPT.format(
-            project_info=project_info,
-            institutions_info=institutions_info
-        )}]
-    )
-    return _parse_json_list(response.content[0].text)
+    raw = call_llm(P2I_PROMPT.format(project_info=project_info,
+                                     institutions_info=institutions_info))
+    return _parse_json_list(raw)
 
 
-def match_institution_to_projects(institution: dict, projects: list, api_key: str) -> list:
-    client = anthropic.Anthropic(api_key=api_key)
+def match_institution_to_projects(institution: dict, projects: list, api_key: str = "") -> list:
+    from core.llm import call_llm
     institution_info = _fmt_institution(institution)
     projects_info = "\n".join(f"ID:{p.get('id')} | {_fmt_project(p)}" for p in projects)
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": I2P_PROMPT.format(
-            institution_info=institution_info,
-            projects_info=projects_info
-        )}]
-    )
-    return _parse_json_list(response.content[0].text)
+    raw = call_llm(I2P_PROMPT.format(institution_info=institution_info,
+                                     projects_info=projects_info))
+    return _parse_json_list(raw)

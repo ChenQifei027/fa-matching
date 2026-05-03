@@ -12,7 +12,7 @@ from core.scraper import scrape_institution_investments
 
 load_dotenv()
 DB_PATH = os.getenv("DB_PATH", "data/fa_matching.db")
-API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+from core.llm import llm_is_configured
 BROWSER_STATE = os.getenv("BROWSER_STATE_PATH", "data/browser_state.json")
 
 init_db(DB_PATH)
@@ -36,8 +36,8 @@ with tab_add:
         if st.form_submit_button("➕ 新增并自动补全信息"):
             if not name:
                 st.error("机构名称不能为空")
-            elif not API_KEY:
-                st.error("请先配置 API Key")
+            elif not llm_is_configured():
+                st.error("请先在「设置」页面配置推理模型")
             else:
                 iid = insert_institution(
                     DB_PATH, name=name, location=location,
@@ -47,7 +47,7 @@ with tab_add:
                     track_updates=1 if track else 0
                 )
                 with st.spinner(f"正在查询「{name}」的公开信息..."):
-                    enriched = enrich_institution(name, api_key=API_KEY)
+                    enriched = enrich_institution(name)
                     update_institution(DB_PATH, iid, **{k: v for k, v in enriched.items() if v})
                 st.success(f"机构「{name}」已添加并补全基本信息")
                 st.rerun()
