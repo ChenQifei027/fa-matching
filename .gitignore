@@ -1,0 +1,7 @@
+.env
+data/fa_matching.db
+data/browser_state.json
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
