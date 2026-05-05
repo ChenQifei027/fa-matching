@@ -18,7 +18,7 @@ def test_init_db_creates_tables(db):
     import sqlite3
     conn = sqlite3.connect(db)
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-    assert {"projects", "institutions", "investment_records"}.issubset(tables)
+    assert {"projects", "institutions", "investment_records", "project_funding_rounds"}.issubset(tables)
     conn.close()
 
 def test_insert_and_get_project(db):
@@ -94,6 +94,11 @@ def test_upsert_project_report_overwrites(db):
     upsert_project_report(db, pid, '{"founded_year":"2021"}')
     p = get_project(db, pid)
     assert json.loads(p["report_json"])["founded_year"] == "2021"
+
+
+def test_upsert_project_report_raises_on_missing_project(db):
+    with pytest.raises(ValueError, match="not found"):
+        upsert_project_report(db, 99999, '{}')
 
 
 def test_insert_and_list_funding_rounds(db):

@@ -95,22 +95,12 @@ def _migrate(conn):
         "ALTER TABLE investment_records ADD COLUMN company_desc TEXT",
         "ALTER TABLE projects ADD COLUMN report_json TEXT",
         "ALTER TABLE projects ADD COLUMN report_generated_at TEXT",
-        """CREATE TABLE IF NOT EXISTS project_funding_rounds (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id INTEGER NOT NULL,
-            round_date TEXT,
-            round_type TEXT,
-            amount TEXT,
-            investors TEXT,
-            source TEXT DEFAULT 'itjuzi',
-            FOREIGN KEY (project_id) REFERENCES projects(id),
-            UNIQUE(project_id, round_date, round_type)
-        )""",
     ]:
         try:
             conn.execute(ddl)
-        except Exception:
-            pass
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e) and "already exists" not in str(e):
+                raise
 
 
 def init_db(db_path):
@@ -230,11 +220,14 @@ def update_investment_record_desc(db_path, record_id: int, company_desc: str):
 
 
 def upsert_project_report(db_path, project_id: int, report_json: str):
+    now = datetime.now().isoformat()
     with _conn(db_path) as conn:
-        conn.execute(
+        cur = conn.execute(
             "UPDATE projects SET report_json = ?, report_generated_at = ?, updated_at = ? WHERE id = ?",
-            (report_json, datetime.now().isoformat(), datetime.now().isoformat(), project_id)
+            (report_json, now, now, project_id)
         )
+        if cur.rowcount == 0:
+            raise ValueError(f"project {project_id} not found")
 
 
 def insert_funding_round(db_path, **kwargs):
