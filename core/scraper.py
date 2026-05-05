@@ -158,8 +158,7 @@ detail_url = None
 for l in (links or []):
     href = l.get("href","")
     text = l.get("text","")
-    import re as _re
-    if _re.search(r'/company/\\d+', href):
+    if re.search(r'/company/\\d+', href):
         if name in text or len(links) == 1:
             detail_url = "https://www.itjuzi.com" + href if href.startswith("/") else href
             break
