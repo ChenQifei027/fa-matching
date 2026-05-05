@@ -136,3 +136,12 @@ def test_list_funding_rounds_ordered_desc(db):
                          round_type="B轮", amount="y", investors="y")
     rows = list_funding_rounds(db, pid)
     assert rows[0]["round_date"] == "2023-06-01"
+
+
+def test_delete_project_cascades_funding_rounds(db):
+    pid = insert_project(db, name="Test Co")
+    insert_funding_round(db, project_id=pid, round_date="2023-01-01",
+                         round_type="A轮", amount="x", investors="y")
+    delete_project(db, pid)
+    assert list_funding_rounds(db, pid) == []
+    assert get_project(db, pid) is None

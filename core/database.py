@@ -142,6 +142,7 @@ def update_project(db_path, project_id, **kwargs):
 
 def delete_project(db_path, project_id):
     with _conn(db_path) as conn:
+        conn.execute("DELETE FROM project_funding_rounds WHERE project_id = ?", (project_id,))
         conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
 
 def insert_institution(db_path, **kwargs) -> int:

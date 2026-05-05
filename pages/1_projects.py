@@ -209,7 +209,7 @@ if not projects:
 else:
     selected_id = st.session_state.get("selected_project_id")
 
-    # 表头行（6列，与数据行完全一致）
+    # 表头行（7列，与数据行完全一致）
     COLS = [3, 2, 2, 1, 1, 1, 1]
     h1, h2, h3, h4, _, _, _ = st.columns(COLS)
     h1.markdown("**项目名称**")
