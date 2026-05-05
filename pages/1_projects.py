@@ -36,7 +36,7 @@ def _render_report_panel(db_path, project, browser_state):
         st.session_state.pop("report_project_id", None)
         st.rerun()
 
-    def _do_generate():
+    def _do_generate(gen_key=None):
         try:
             with st.status("正在生成项目报告...", expanded=True) as status:
                 st.write("LLM 分析 BP 文本...")
@@ -56,11 +56,17 @@ def _render_report_panel(db_path, project, browser_state):
                 )
         except Exception as e:
             st.warning(f"报告生成部分失败：{e}")
-        finally:
-            st.rerun()
+        if gen_key:
+            st.session_state.pop(gen_key, None)
+        st.rerun()
 
+    gen_key = f"report_generating_{pid}"
     if not has_cache:
-        _do_generate()
+        if st.session_state.get(gen_key):
+            st.info("报告生成中，请稍候...")
+            return
+        st.session_state[gen_key] = True
+        _do_generate(gen_key)
         return
 
     # Show cached report
@@ -74,7 +80,7 @@ def _render_report_panel(db_path, project, browser_state):
     gen_time = (project.get("report_generated_at") or "")[:16].replace("T", " ")
 
     if regen_col.button("🔄 重新生成", key="regen_report"):
-        _do_generate()
+        _do_generate(gen_key)
         return
 
     # Excel export
@@ -241,6 +247,7 @@ else:
             if col5.button("详情", key=f"detail_{p['id']}"):
                 st.session_state["selected_project_id"] = p["id"]
                 st.session_state.pop("confirm_delete_project_id", None)
+                st.session_state.pop("report_project_id", None)
                 st.rerun()
             if col6.button("🗑️", key=f"pdel_{p['id']}", help="删除此项目"):
                 st.session_state["confirm_delete_project_id"] = p["id"]
