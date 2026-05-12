@@ -1,0 +1,28 @@
+:root {
+  --bg-base:        #080810;
+  --bg-surface:     #0f0f1a;
+  --bg-elevated:    #1a1a2e;
+  --border:         #2a2a4a;
+  --text-primary:   #e2e2e8;
+  --text-secondary: #888888;
+  --text-muted:     #555555;
+  --accent:         #5b5bd6;
+  --accent-light:   #8b5cf6;
+  --success:        #3ecf8e;
+  --warning:        #f59e0b;
+  --danger:         #ef4444;
+  --radius-sm:      4px;
+  --radius-md:      6px;
+  --radius-lg:      8px;
+  --nav-height:     44px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; }
+input, textarea { font-family: inherit; }
