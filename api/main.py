@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routers import jobs, projects, institutions
+from api.routers import jobs, projects, institutions, matching, settings
 
 app = FastAPI(title="FA Matching API")
 app.add_middleware(
@@ -13,9 +13,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(jobs.router)
-app.include_router(projects.router)
-app.include_router(institutions.router)
+for router in [jobs.router, projects.router, institutions.router,
+               matching.router, settings.router]:
+    app.include_router(router)
 
 @app.get("/api/health")
 def health():
