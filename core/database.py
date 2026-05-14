@@ -97,6 +97,9 @@ def _migrate(conn):
         "ALTER TABLE projects ADD COLUMN report_generated_at TEXT",
         "ALTER TABLE projects ADD COLUMN research_json TEXT",
         "ALTER TABLE projects ADD COLUMN research_generated_at TEXT",
+        "ALTER TABLE institutions ADD COLUMN source TEXT DEFAULT 'manual'",
+        "ALTER TABLE institutions ADD COLUMN preference_profile TEXT",
+        "ALTER TABLE institutions ADD COLUMN preference_analyzed_at TEXT",
     ]:
         try:
             conn.execute(ddl)
@@ -271,3 +274,64 @@ def delete_project_funding_rounds(db_path, project_id: int):
             "DELETE FROM project_funding_rounds WHERE project_id = ?",
             (project_id,)
         )
+
+
+def upsert_institution_by_name(db_path, name: str, **defaults) -> int:
+    """按名称查找机构，存在则返回ID，否则以 source='itjuzi_discovery' 插入。"""
+    with _conn(db_path) as conn:
+        row = conn.execute("SELECT id FROM institutions WHERE name = ?", (name,)).fetchone()
+        if row:
+            return row["id"]
+        fields = {"name": name, "source": "itjuzi_discovery", **defaults}
+        cols = ", ".join(fields.keys())
+        placeholders = ", ".join("?" * len(fields))
+        cur = conn.execute(
+            f"INSERT INTO institutions ({cols}) VALUES ({placeholders})",
+            list(fields.values())
+        )
+        return cur.lastrowid
+
+
+def update_preference_profile(db_path, institution_id: int, profile_json: str):
+    now = datetime.now().isoformat()
+    with _conn(db_path) as conn:
+        conn.execute(
+            "UPDATE institutions SET preference_profile=?, preference_analyzed_at=?, updated_at=? WHERE id=?",
+            (profile_json, now, now, institution_id)
+        )
+
+
+def list_institutions_needing_analysis(db_path) -> list:
+    """返回有投资记录但 preference_analyzed_at 为空或超过30天的机构。"""
+    from datetime import timedelta
+    cutoff = (datetime.now() - timedelta(days=30)).isoformat()
+    with _conn(db_path) as conn:
+        rows = conn.execute("""
+            SELECT DISTINCT i.* FROM institutions i
+            JOIN investment_records ir ON ir.institution_id = i.id
+            WHERE i.preference_analyzed_at IS NULL
+               OR i.preference_analyzed_at < ?
+            ORDER BY i.name
+        """, (cutoff,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def list_recent_records(db_path, institution_id: int, years: int = 2) -> list:
+    """返回指定机构近 years 年的投资记录。"""
+    from datetime import timedelta
+    cutoff = (datetime.now() - timedelta(days=years * 365)).strftime("%Y-%m-%d")
+    with _conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM investment_records WHERE institution_id=? AND invested_date>=? ORDER BY invested_date DESC",
+            (institution_id, cutoff)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def list_institutions_with_profiles(db_path) -> list:
+    """返回所有有 preference_profile 的机构。"""
+    with _conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT * FROM institutions WHERE preference_profile IS NOT NULL AND preference_profile != '' ORDER BY name"
+        ).fetchall()
+        return [dict(r) for r in rows]
