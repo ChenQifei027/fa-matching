@@ -26,3 +26,8 @@ body {
 }
 button { font-family: inherit; cursor: pointer; }
 input, textarea { font-family: inherit; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
