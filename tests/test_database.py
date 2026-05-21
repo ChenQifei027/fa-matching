@@ -167,3 +167,47 @@ def test_upsert_project_research_missing_project(db):
     import pytest
     with pytest.raises(ValueError, match="project 999 not found"):
         upsert_project_research(db, 999, '{}')
+
+
+def test_sectors_upsert_and_get(tmp_path):
+    from core.database import init_db, upsert_sector, get_sector
+    db = tmp_path / "t.db"
+    init_db(str(db))
+
+    upsert_sector(str(db), "全主动悬架",
+                  description="一种电控悬架。",
+                  industry_overview="国内规模化前夜。",
+                  top_companies='[{"name":"A","desc":"x"}]',
+                  synonyms='["主动悬架"]',
+                  generated_by="claude-sonnet-4-6")
+    row = get_sector(str(db), "全主动悬架")
+    assert row["description"] == "一种电控悬架。"
+    assert row["synonyms"] == '["主动悬架"]'
+    assert row["generated_at"]  # 非空
+    assert row["generated_by"] == "claude-sonnet-4-6"
+
+
+def test_sectors_upsert_overwrites_existing(tmp_path):
+    from core.database import init_db, upsert_sector, get_sector
+    db = tmp_path / "t.db"
+    init_db(str(db))
+
+    upsert_sector(str(db), "AI芯片", description="老版本")
+    upsert_sector(str(db), "AI芯片", description="新版本")
+    assert get_sector(str(db), "AI芯片")["description"] == "新版本"
+
+
+def test_get_sector_missing_returns_none(tmp_path):
+    from core.database import init_db, get_sector
+    db = tmp_path / "t.db"
+    init_db(str(db))
+    assert get_sector(str(db), "不存在的赛道") is None
+
+
+def test_delete_sector(tmp_path):
+    from core.database import init_db, upsert_sector, get_sector, delete_sector
+    db = tmp_path / "t.db"
+    init_db(str(db))
+    upsert_sector(str(db), "X", description="d")
+    delete_sector(str(db), "X")
+    assert get_sector(str(db), "X") is None

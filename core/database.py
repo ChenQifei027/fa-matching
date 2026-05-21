@@ -74,6 +74,16 @@ CREATE TABLE IF NOT EXISTS project_funding_rounds (
     FOREIGN KEY (project_id) REFERENCES projects(id),
     UNIQUE(project_id, round_date, round_type)
 );
+
+CREATE TABLE IF NOT EXISTS sectors (
+    name TEXT PRIMARY KEY,
+    description TEXT DEFAULT '',
+    industry_overview TEXT DEFAULT '',
+    top_companies TEXT DEFAULT '[]',
+    synonyms TEXT DEFAULT '[]',
+    generated_at TEXT DEFAULT (datetime('now')),
+    generated_by TEXT DEFAULT ''
+);
 """
 
 @contextmanager
@@ -335,3 +345,33 @@ def list_institutions_with_profiles(db_path) -> list:
             "SELECT * FROM institutions WHERE preference_profile IS NOT NULL AND preference_profile != '' ORDER BY name"
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def get_sector(db_path, name: str) -> Optional[dict]:
+    with _conn(db_path) as conn:
+        row = conn.execute("SELECT * FROM sectors WHERE name = ?", (name,)).fetchone()
+        return dict(row) if row else None
+
+
+def upsert_sector(db_path, name: str, **fields):
+    """插入或覆盖。fields 允许 description / industry_overview /
+    top_companies / synonyms / generated_by;generated_at 自动设为当前时间。"""
+    allowed = {"description", "industry_overview", "top_companies",
+               "synonyms", "generated_by"}
+    clean = {k: v for k, v in fields.items() if k in allowed}
+    clean["name"] = name
+    clean["generated_at"] = datetime.now().isoformat()
+    cols = ", ".join(clean.keys())
+    placeholders = ", ".join("?" * len(clean))
+    updates = ", ".join(f"{k} = excluded.{k}" for k in clean if k != "name")
+    with _conn(db_path) as conn:
+        conn.execute(
+            f"INSERT INTO sectors ({cols}) VALUES ({placeholders}) "
+            f"ON CONFLICT(name) DO UPDATE SET {updates}",
+            list(clean.values())
+        )
+
+
+def delete_sector(db_path, name: str):
+    with _conn(db_path) as conn:
+        conn.execute("DELETE FROM sectors WHERE name = ?", (name,))
