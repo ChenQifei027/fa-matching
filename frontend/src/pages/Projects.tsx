@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import SectorDrawer, { ClickableSectorBadge } from '../components/SectorDrawer'
 import { projectsApi } from '../api/projects'
 import type { Project, ParsedBP } from '../api/projects'
 import { pollJob } from '../api/jobs'
@@ -16,6 +17,7 @@ export default function Projects({ onGoToMatch }: { onGoToMatch: (id: number) =>
   const [showUpload, setShowUpload] = useState(false)
   const [expanded, setExpanded] = useState<{id: number; type: 'report'|'research'} | null>(null)
   const [running, setRunning]   = useState<Record<number, boolean>>({})
+  const [openSector, setOpenSector] = useState<string | null>(null)
 
   const reload = useCallback(() => projectsApi.list().then(setProjects).finally(() => setLoading(false)), [])
   useEffect(() => { reload() }, [reload])
@@ -37,7 +39,8 @@ export default function Projects({ onGoToMatch }: { onGoToMatch: (id: number) =>
   }
 
   return (
-    <div>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
       <div style={{ display:'flex', gap:10, marginBottom:16, alignItems:'center' }}>
         <h1 style={{ fontSize:18, fontWeight:600 }}>项目管理</h1>
         <button style={gradBtn} onClick={() => setShowUpload(true)}>＋ 上传 BP</button>
@@ -59,8 +62,18 @@ export default function Projects({ onGoToMatch }: { onGoToMatch: (id: number) =>
               const rows: React.ReactNode[] = [(
                 <tr key={p.id} style={{ borderBottom:'1px solid var(--bg-elevated)' }}>
                   <td style={{ padding:'11px 12px', color:'#fff', fontWeight:500 }}>{p.name}</td>
-                  <td style={{ padding:'11px 12px' }}>{p.sector && <Badge variant="purple">{p.sector}</Badge>}</td>
-                  <td style={{ padding:'11px 12px', color:'var(--text-secondary)' }}>{p.sub_sector||'—'}</td>
+                  <td style={{ padding:'11px 12px' }}>{p.sector && (
+                    <ClickableSectorBadge name={p.sector} onClick={setOpenSector} />
+                  )}</td>
+                  <td style={{ padding:'11px 12px' }}>
+                    {p.sub_sector ? (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:3 }}>
+                        {p.sub_sector.split(',').filter(Boolean).map(s => (
+                          <ClickableSectorBadge key={s.trim()} name={s.trim()} onClick={setOpenSector} />
+                        ))}
+                      </div>
+                    ) : <span style={{ color:'var(--text-secondary)' }}>—</span>}
+                  </td>
                   <td style={{ padding:'11px 12px' }}>{p.stage && <Badge variant="amber">{p.stage}</Badge>}</td>
                   <td style={{ padding:'11px 12px', color:'var(--text-secondary)' }}>{p.location||'—'}</td>
                   <td style={{ padding:'11px 12px' }}>
@@ -96,6 +109,15 @@ export default function Projects({ onGoToMatch }: { onGoToMatch: (id: number) =>
       )}
 
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onSaved={() => { setShowUpload(false); reload() }} />}
+      </div>
+      {openSector && (
+        <SectorDrawer
+          key={openSector}
+          sectorName={openSector}
+          onClose={() => setOpenSector(null)}
+          onJumpTo={(n) => setOpenSector(n)}
+        />
+      )}
     </div>
   )
 }
