@@ -77,4 +77,5 @@ def test_post_existing_with_force_regenerates(client, mocker):
     for _ in range(50):
         if get_job(job_id)["status"] in ("completed", "failed"):
             break
+    assert get_job(job_id)["status"] == "completed"
     assert c.get("/api/sectors/已存在").json()["description"] == "new"
