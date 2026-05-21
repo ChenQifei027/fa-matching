@@ -49,6 +49,7 @@ export default function SectorDrawer({ sectorName, onClose, onJumpTo }: DrawerPr
   }, [sectorName])
 
   async function regenerate() {
+    cancelPoll.current?.()
     setRegenerating(true)
     setState({ kind: 'loading' })
     try {
@@ -103,7 +104,7 @@ export default function SectorDrawer({ sectorName, onClose, onJumpTo }: DrawerPr
             <span>上次生成 {state.data.generated_at.slice(0, 10)}</span>
           </>
         )}
-        <button onClick={regenerate} disabled={regenerating} style={{
+        <button onClick={regenerate} disabled={regenerating || state.kind === 'loading'} style={{
           marginLeft: 'auto',
           background: 'transparent', border: '1px solid var(--border)',
           color: 'var(--text-secondary)', fontSize: 11,
@@ -210,11 +211,16 @@ function DataView({ data, onJumpTo }: { data: SectorExplanation; onJumpTo: (name
           <div style={h3}>同义词候选(LLM 给出,可点跳转)</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {data.synonyms.map(s => (
-              <span key={s} onClick={() => onJumpTo(s)} style={{
-                fontSize: 12, padding: '3px 10px', borderRadius: 4,
-                background: 'rgba(139,92,246,0.12)', color: 'var(--accent-light)',
-                border: '1px solid rgba(139,92,246,0.3)', cursor: 'pointer'
-              }}>{s}</span>
+              <span key={s}
+                role="button"
+                tabIndex={0}
+                onClick={() => onJumpTo(s)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJumpTo(s) } }}
+                style={{
+                  fontSize: 12, padding: '3px 10px', borderRadius: 4,
+                  background: 'rgba(139,92,246,0.12)', color: 'var(--accent-light)',
+                  border: '1px solid rgba(139,92,246,0.3)', cursor: 'pointer'
+                }}>{s}</span>
             ))}
           </div>
         </div>
