@@ -354,8 +354,10 @@ def get_sector(db_path, name: str) -> Optional[dict]:
 
 
 def upsert_sector(db_path, name: str, **fields):
-    """插入或覆盖。fields 允许 description / industry_overview /
-    top_companies / synonyms / generated_by;generated_at 自动设为当前时间。"""
+    """插入或更新。只覆盖 fields 中明确传入的列(未传入的列保持原值);
+    generated_at 每次调用都自动刷新为当前时间。
+    fields 允许: description / industry_overview / top_companies /
+    synonyms / generated_by。"""
     allowed = {"description", "industry_overview", "top_companies",
                "synonyms", "generated_by"}
     clean = {k: v for k, v in fields.items() if k in allowed}

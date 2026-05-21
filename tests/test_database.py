@@ -169,45 +169,44 @@ def test_upsert_project_research_missing_project(db):
         upsert_project_research(db, 999, '{}')
 
 
-def test_sectors_upsert_and_get(tmp_path):
-    from core.database import init_db, upsert_sector, get_sector
-    db = tmp_path / "t.db"
-    init_db(str(db))
+def test_sectors_upsert_and_get(db):
+    from core.database import upsert_sector, get_sector
 
-    upsert_sector(str(db), "全主动悬架",
+    upsert_sector(db, "全主动悬架",
                   description="一种电控悬架。",
                   industry_overview="国内规模化前夜。",
                   top_companies='[{"name":"A","desc":"x"}]',
                   synonyms='["主动悬架"]',
                   generated_by="claude-sonnet-4-6")
-    row = get_sector(str(db), "全主动悬架")
+    row = get_sector(db, "全主动悬架")
     assert row["description"] == "一种电控悬架。"
     assert row["synonyms"] == '["主动悬架"]'
     assert row["generated_at"]  # 非空
     assert row["generated_by"] == "claude-sonnet-4-6"
 
 
-def test_sectors_upsert_overwrites_existing(tmp_path):
-    from core.database import init_db, upsert_sector, get_sector
-    db = tmp_path / "t.db"
-    init_db(str(db))
+def test_sectors_upsert_overwrites_existing(db):
+    """Second upsert updates only the specified field; untouched fields survive."""
+    from core.database import upsert_sector, get_sector
 
-    upsert_sector(str(db), "AI芯片", description="老版本")
-    upsert_sector(str(db), "AI芯片", description="新版本")
-    assert get_sector(str(db), "AI芯片")["description"] == "新版本"
-
-
-def test_get_sector_missing_returns_none(tmp_path):
-    from core.database import init_db, get_sector
-    db = tmp_path / "t.db"
-    init_db(str(db))
-    assert get_sector(str(db), "不存在的赛道") is None
+    upsert_sector(db, "AI芯片",
+                  description="d1",
+                  industry_overview="i1",
+                  synonyms='["x"]')
+    upsert_sector(db, "AI芯片", description="d2")
+    row = get_sector(db, "AI芯片")
+    assert row["description"] == "d2"          # updated field changed
+    assert row["industry_overview"] == "i1"    # untouched field survived
+    assert row["synonyms"] == '["x"]'          # untouched field survived
 
 
-def test_delete_sector(tmp_path):
-    from core.database import init_db, upsert_sector, get_sector, delete_sector
-    db = tmp_path / "t.db"
-    init_db(str(db))
-    upsert_sector(str(db), "X", description="d")
-    delete_sector(str(db), "X")
-    assert get_sector(str(db), "X") is None
+def test_get_sector_missing_returns_none(db):
+    from core.database import get_sector
+    assert get_sector(db, "不存在的赛道") is None
+
+
+def test_delete_sector(db):
+    from core.database import upsert_sector, get_sector, delete_sector
+    upsert_sector(db, "X", description="d")
+    delete_sector(db, "X")
+    assert get_sector(db, "X") is None
