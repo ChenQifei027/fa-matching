@@ -37,10 +37,17 @@ def generate_sector_explanation(name: str) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         data = {}
+    if not isinstance(data, dict):
+        data = {}
     defaults = {
         "description": "",
         "industry_overview": "",
         "top_companies": [],
         "synonyms": [],
     }
-    return {**defaults, **(data if isinstance(data, dict) else {})}
+    result = {**defaults, **data}
+    # Coerce None back to defaults — LLM may return {"top_companies": null}
+    for key, default in defaults.items():
+        if result[key] is None:
+            result[key] = default
+    return result

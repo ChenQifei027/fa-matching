@@ -45,3 +45,13 @@ def test_generate_prompt_contains_sector_name(mocker):
     mocker.patch("core.llm.call_llm", side_effect=fake_call)
     generate_sector_explanation("脑机接口")
     assert "脑机接口" in captured["prompt"]
+
+
+def test_generate_null_list_fields_fall_back_to_defaults(mocker):
+    """LLM may return {"top_companies": null}; we must coerce back to [] so callers don't crash."""
+    mocker.patch("core.llm.call_llm",
+                 return_value=_llm_payload(top_companies=None, synonyms=None, description=None))
+    out = generate_sector_explanation("某赛道")
+    assert out["top_companies"] == []
+    assert out["synonyms"] == []
+    assert out["description"] == ""  # None for string fields → default empty string too
