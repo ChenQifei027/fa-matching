@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>赛道词条 Drawer 原型 · fa-matching</title>
+<style>
+  :root {
+    --bg-base:#080810; --bg-surface:#0f0f1a; --bg-elevated:#1a1a2e;
+    --border:#2a2a4a; --text-primary:#e2e2e8; --text-secondary:#888888;
+    --text-muted:#555555; --accent:#5b5bd6; --accent-light:#8b5cf6;
+    --success:#3ecf8e; --warning:#f59e0b; --danger:#ef4444;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg-base);color:var(--text-primary);
+       font-family:'Inter',-apple-system,system-ui,sans-serif;font-size:13px;line-height:1.5}
+  a{color:var(--accent-light);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .notice{background:#3a2a05;border:1px solid var(--warning);color:#fbcf78;
+          padding:10px 16px;font-size:12px;margin:16px 24px;border-radius:6px}
+  .notice b{color:#fff}
+
+  header{padding:18px 32px 0;border-bottom:1px solid var(--border)}
+  header h1{font-size:16px;font-weight:600;margin-bottom:4px}
+  header p{color:var(--text-secondary);font-size:12px;margin-bottom:18px}
+
+  main{padding:24px 32px;display:flex;gap:20px;align-items:flex-start;min-height:calc(100vh - 220px)}
+  .listcol{flex:1;min-width:0}
+
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;padding:8px 12px;color:var(--text-muted);font-size:11px;font-weight:500;
+     text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bg-elevated)}
+  td{padding:11px 12px;border-bottom:1px solid var(--bg-elevated);vertical-align:top}
+  td .iname{color:#fff;font-weight:500;margin-bottom:2px}
+  td .iloc{color:var(--text-muted);font-size:11px}
+
+  .badges{display:flex;flex-wrap:wrap;gap:4px}
+  .badge{font-size:11px;padding:2px 8px;border-radius:3px;background:rgba(91,91,214,.18);
+         color:#a8a4ff;cursor:pointer;border:1px dashed transparent;transition:all .12s ease;
+         user-select:none;line-height:1.6}
+  .badge:hover{background:rgba(91,91,214,.32);border-color:rgba(139,92,246,.6);color:#fff}
+  .badge.amber{background:rgba(245,158,11,.15);color:#fbbf24;cursor:default}
+  .badge.amber:hover{background:rgba(245,158,11,.15);border-color:transparent;color:#fbbf24}
+  .badge.active{background:var(--accent);color:#fff;border-color:transparent}
+
+  aside.drawer{width:520px;flex-shrink:0;position:sticky;top:0;align-self:flex-start;
+               border:1px solid var(--border);border-radius:8px;background:var(--bg-surface);
+               overflow:hidden;display:none}
+  aside.drawer.open{display:block;animation:slideIn .18s ease}
+  @keyframes slideIn{from{transform:translateX(12px);opacity:0}to{transform:none;opacity:1}}
+
+  .drawer-head{padding:14px 16px 14px 20px;border-bottom:1px solid var(--border);
+               display:flex;align-items:center;gap:10px}
+  .drawer-head .title{font-weight:600;font-size:15px;color:#fff;flex:1;
+                      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .drawer-head .close{background:transparent;border:none;color:var(--text-muted);
+                      font-size:20px;padding:0 4px;line-height:1}
+  .drawer-head .close:hover{color:#fff}
+
+  .meta-row{padding:8px 20px;background:rgba(245,158,11,.06);border-bottom:1px solid var(--border);
+            display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text-secondary)}
+  .meta-row .dot{width:5px;height:5px;border-radius:50%;background:var(--warning)}
+  .meta-row button{background:transparent;border:1px solid var(--border);color:var(--text-secondary);
+                   font-size:11px;padding:3px 10px;border-radius:4px;margin-left:auto}
+  .meta-row button:hover{color:#fff;border-color:var(--accent-light)}
+
+  .drawer-body{padding:20px;max-height:calc(100vh - 200px);overflow:auto}
+  .section{margin-bottom:20px}
+  .section:last-child{margin-bottom:0}
+  .section h3{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;
+              font-weight:500;margin-bottom:8px}
+  .section p{font-size:13px;line-height:1.65;color:var(--text-primary)}
+  .companies{display:flex;flex-direction:column;gap:8px}
+  .company{padding:8px 10px;border:1px solid var(--bg-elevated);border-radius:6px;
+           background:var(--bg-elevated)}
+  .company .cname{color:#fff;font-weight:500;margin-bottom:2px;font-size:13px}
+  .company .cdesc{color:var(--text-secondary);font-size:12px;line-height:1.5}
+  .synonyms{display:flex;flex-wrap:wrap;gap:6px}
+  .synonyms .syn{font-size:12px;padding:3px 10px;border-radius:4px;
+                 background:rgba(139,92,246,.12);color:var(--accent-light);cursor:pointer;
+                 border:1px solid rgba(139,92,246,.3)}
+  .synonyms .syn:hover{background:rgba(139,92,246,.25);color:#fff}
+
+  /* skeleton 骨架屏 */
+  .skel{background:linear-gradient(90deg,var(--bg-elevated) 0%,rgba(91,91,214,.12) 50%,var(--bg-elevated) 100%);
+        background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:4px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .skel.h12{height:12px}.skel.h14{height:14px}.skel.h40{height:40px}
+  .skel.w40{width:40%}.skel.w60{width:60%}.skel.w80{width:80%}.skel.w100{width:100%}
+  .skel-stack > *{margin-bottom:8px}
+
+  .legend{margin:16px 24px;padding:14px 16px;background:var(--bg-surface);border:1px solid var(--border);
+          border-radius:6px;font-size:12px;color:var(--text-secondary)}
+  .legend b{color:#fff}
+  .legend code{background:var(--bg-elevated);padding:1px 6px;border-radius:3px;font-size:11px;color:#a8a4ff}
+  .legend ul{margin-top:6px;padding-left:18px;line-height:1.8}
+</style>
+</head>
+<body>
+
+<div class="notice">
+  ⚠️ <b>这是设计原型，不是真功能</b>。下面表格里的赛道、Drawer 里的"是什么/行业发展/头部公司"全是占位演示文字，不是真实数据。
+  上线后所有内容由 LLM 生成 + 缓存（你之前定的 C 方案）。请只评估"长什么样、交互怎么走"。
+</div>
+
+<header>
+  <h1>机构管理 · 列表（mockup）</h1>
+  <p>把鼠标移到「关注赛道」列的蓝色标签上，光标会变手 + 标签描边——表示可点击。点一下打开右侧 Drawer。</p>
+</header>
+
+<main>
+  <div class="listcol">
+    <table>
+      <thead><tr>
+        <th>机构名称</th><th>关注赛道</th><th>偏好阶段</th><th>最后更新</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="iname">某东方资本</div>
+            <div class="iloc">上海</div>
+          </td>
+          <td>
+            <div class="badges">
+              <span class="badge" data-sector="全主动悬架">全主动悬架</span>
+              <span class="badge" data-sector="智能驾驶">智能驾驶</span>
+              <span class="badge" data-sector="AI芯片">AI 芯片</span>
+              <span class="badge" data-sector="医疗影像AI">医疗影像 AI</span>
+            </div>
+          </td>
+          <td><div class="badges"><span class="badge amber">A 轮</span><span class="badge amber">B 轮</span></div></td>
+          <td style="color:var(--text-muted);font-size:11px">2026-05-18</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="iname">某红杉创投</div>
+            <div class="iloc">北京</div>
+          </td>
+          <td>
+            <div class="badges">
+              <span class="badge" data-sector="主动悬架">主动悬架</span>
+              <span class="badge" data-sector="智能驾驶">智能驾驶</span>
+              <span class="badge" data-sector="脑机接口">脑机接口</span>
+            </div>
+          </td>
+          <td><div class="badges"><span class="badge amber">天使</span><span class="badge amber">A 轮</span></div></td>
+          <td style="color:var(--text-muted);font-size:11px">2026-05-15</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="iname">某高瓴成长</div>
+            <div class="iloc">深圳</div>
+          </td>
+          <td>
+            <div class="badges">
+              <span class="badge" data-sector="AI芯片">AI 芯片</span>
+              <span class="badge" data-sector="医疗影像AI">医疗影像 AI</span>
+              <span class="badge" data-sector="工业软件">工业软件</span>
+            </div>
+          </td>
+          <td><div class="badges"><span class="badge amber">B 轮</span><span class="badge amber">C 轮</span></div></td>
+          <td style="color:var(--text-muted);font-size:11px">2026-05-10</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="legend">
+      <b>这个原型里能交互的事</b>
+      <ul>
+        <li>悬停 / 点击「关注赛道」列的蓝色 Badge——这是新加的可点击元素</li>
+        <li>点新词条 → Drawer 先显示 <code>骨架屏 loading</code>，1.5 秒后填入内容（模拟 LLM 首次生成）</li>
+        <li>同一词条第二次点 → 秒开（模拟缓存命中）</li>
+        <li>Drawer 底部「同义词」可点击，切换到那个词的解释</li>
+        <li>右上 × 关闭；切换 Badge 不用关，直接点其他 Badge 切内容</li>
+        <li>橙色 Badge（A 轮/B 轮等）<b>不可点</b>，只是展示——演示"可点 vs 不可点"的视觉差</li>
+      </ul>
+    </div>
+  </div>
+
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <span class="title" id="d-title">—</span>
+      <button class="close" onclick="closeDrawer()" aria-label="关闭">×</button>
+    </div>
+    <div class="meta-row">
+      <span class="dot"></span>
+      <span>AI 生成，仅供参考</span>
+      <span>·</span>
+      <span id="d-time">—</span>
+      <button onclick="regen()">↻ 重新生成</button>
+    </div>
+    <div class="drawer-body" id="d-body"></div>
+  </aside>
+</main>
+
+<script>
+  // ⚠️ 全部为占位演示数据，非真实赛道介绍
+  const DATA = {
+    "全主动悬架": {
+      desc: "全主动悬架是一种通过电控作动器实时调节车轮垂向力的悬架系统。不同于被动悬架的固定刚度阻尼，它能在毫秒级响应路面变化，主动抬升或压低车身。",
+      industry: "中国市场仍处于规模化前夜，2024 年起多家自主品牌将其列为高端车型卖点。核心驱动力是消费者对智能驾驶舒适性的预期升级与电动车平台普及。供应端关键瓶颈是高功率作动器与控制算法的国产化。",
+      companies: [
+        ["占位公司 A", "某长三角企业，做电磁悬架作动器"],
+        ["占位公司 B", "电控算法供应商，主攻软件栈"],
+        ["占位公司 C", "整车厂内部供应链子公司"]
+      ],
+      synonyms: ["主动悬架", "电控悬架"],
+      updated: "2026-04-22"
+    },
+    "主动悬架": {
+      desc: "主动悬架是一类能根据路况动态调节车身姿态的悬架系统的统称，覆盖空气悬架、电磁悬架、全主动悬架等多个技术路线。",
+      industry: "海外渗透早，国内豪车配套近三年加速。技术路线百花齐放，全主动是其中最激进的分支。",
+      companies: [
+        ["占位公司 D", "空气悬架龙头"],
+        ["占位公司 E", "电磁悬架方向"]
+      ],
+      synonyms: ["全主动悬架", "空气悬架"],
+      updated: "2026-04-22"
+    },
+    "智能驾驶": {
+      desc: "智能驾驶指通过传感器、算法、执行机构让车辆在部分或全部工况下自主完成驾驶任务，按 L0-L5 分级。目前量产车多在 L2/L2+ 之间。",
+      industry: "国内 2024-2025 渐进式辅助驾驶高歌猛进，城市 NOA 成为车型 PK 关键词。Robotaxi 在多个城市开始无人化运营。投资重点正从感知硬件转向数据闭环和端到端模型。",
+      companies: [
+        ["占位公司 F", "城市 NOA 算法供应商"],
+        ["占位公司 G", "Robotaxi 平台运营商"],
+        ["占位公司 H", "传感器（激光雷达）方向"]
+      ],
+      synonyms: ["自动驾驶", "智驾"],
+      updated: "2026-05-02"
+    },
+    "AI芯片": {
+      desc: "AI 芯片是为深度学习推理和训练优化的专用集成电路，包括 GPU、NPU、TPU 等多种形态。区别于通用 CPU 的关键在于大规模并行矩阵运算单元。",
+      industry: "训练侧海外双寡头格局明显，推理侧国产 NPU 在端侧与边缘场景突围。2024 年起大模型推理芯片成为新热点，能效比成为关键指标。",
+      companies: [
+        ["占位公司 I", "云端训练 GPU 方向"],
+        ["占位公司 J", "端侧 NPU 方向"],
+        ["占位公司 K", "边缘推理盒子"]
+      ],
+      synonyms: ["AI 加速器", "智算芯片"],
+      updated: "2026-05-08"
+    },
+    "医疗影像AI": {
+      desc: "医疗影像 AI 是用深度学习辅助分析 CT/MRI/X 光等影像的技术，应用包括病灶识别、勾画、量化与诊断辅助。",
+      industry: "中国是全球医疗影像 AI 商业化最快的市场之一，三类证持有数量逐年攀升。盈利模式正从单点工具向影像云平台演进。",
+      companies: [
+        ["占位公司 L", "肺结节 AI 三类证"],
+        ["占位公司 M", "心血管影像 AI"],
+        ["占位公司 N", "病理 AI 方向"]
+      ],
+      synonyms: ["医学影像 AI"],
+      updated: "2026-04-30"
+    },
+    "脑机接口": {
+      desc: "脑机接口通过电极采集大脑神经信号并解码，让人脑与外部设备直接交互，分侵入式、半侵入式、非侵入式。",
+      industry: "海外侵入式头部企业完成首例人体植入。国内多家企业聚焦非侵入和半侵入路线，临床试验逐步铺开。",
+      companies: [
+        ["占位公司 O", "非侵入消费级方向"],
+        ["占位公司 P", "侵入式医疗方向"]
+      ],
+      synonyms: ["BCI", "脑机融合"],
+      updated: "2026-03-15"
+    },
+    "工业软件": {
+      desc: "工业软件指服务于工业研发、生产、运营全流程的软件，包括 CAD/CAE/EDA/MES/PLM 等品类。",
+      industry: "国产替代是长期主线，研发设计类（CAD/CAE/EDA）国产化率最低、机会最大；生产管理类竞争更激烈。",
+      companies: [
+        ["占位公司 Q", "国产 CAE 软件"],
+        ["占位公司 R", "工业 MES 平台"]
+      ],
+      synonyms: ["工业软件平台"],
+      updated: "2026-04-12"
+    }
+  };
+
+  const cache = new Set();  // 模拟"已生成过的词条"，下次点击秒开
+
+  function openDrawer(name) {
+    const drawer = document.getElementById('drawer');
+    drawer.classList.add('open');
+    document.getElementById('d-title').textContent = name;
+
+    // 高亮当前选中的 Badge
+    document.querySelectorAll('.badge').forEach(b => {
+      b.classList.toggle('active', b.dataset.sector === name);
+    });
+
+    if (!DATA[name]) {
+      renderMissing(name);
+      return;
+    }
+
+    if (cache.has(name)) {
+      renderContent(name);
+    } else {
+      renderSkeleton();
+      setTimeout(() => {
+        cache.add(name);
+        renderContent(name);
+      }, 1500);
+    }
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.querySelectorAll('.badge.active').forEach(b => b.classList.remove('active'));
+  }
+
+  function regen() {
+    const title = document.getElementById('d-title').textContent;
+    if (!title || title === '—') return;
+    cache.delete(title);
+    openDrawer(title);
+  }
+
+  function renderSkeleton() {
+    document.getElementById('d-time').textContent = '生成中…';
+    document.getElementById('d-body').innerHTML = `
+      <div class="section">
+        <h3>是什么</h3>
+        <div class="skel-stack">
+          <div class="skel h14 w100"></div>
+          <div class="skel h14 w100"></div>
+          <div class="skel h14 w60"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>行业发展</h3>
+        <div class="skel-stack">
+          <div class="skel h14 w100"></div>
+          <div class="skel h14 w80"></div>
+          <div class="skel h14 w100"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>头部公司</h3>
+        <div class="skel-stack">
+          <div class="skel h40 w100"></div>
+          <div class="skel h40 w100"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderContent(name) {
+    const d = DATA[name];
+    document.getElementById('d-time').textContent = '上次生成 ' + d.updated;
+    document.getElementById('d-body').innerHTML = `
+      <div class="section">
+        <h3>是什么</h3>
+        <p>${d.desc}</p>
+      </div>
+      <div class="section">
+        <h3>行业发展</h3>
+        <p>${d.industry}</p>
+      </div>
+      <div class="section">
+        <h3>头部公司</h3>
+        <div class="companies">
+          ${d.companies.map(([n,desc]) => `
+            <div class="company">
+              <div class="cname">${n}</div>
+              <div class="cdesc">${desc}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ${d.synonyms && d.synonyms.length ? `
+      <div class="section">
+        <h3>同义词候选（LLM 给出，可点跳转）</h3>
+        <div class="synonyms">
+          ${d.synonyms.map(s => `<span class="syn" data-jump="${s}">${s}</span>`).join('')}
+        </div>
+      </div>` : ''}
+    `;
+    // 绑定同义词点击
+    document.querySelectorAll('.syn').forEach(el => {
+      el.addEventListener('click', () => openDrawer(el.dataset.jump));
+    });
+  }
+
+  function renderMissing(name) {
+    document.getElementById('d-time').textContent = '无缓存数据';
+    document.getElementById('d-body').innerHTML = `
+      <p style="color:var(--text-muted)">这个词在 mockup 里没准备数据，但在真实环境会触发首次生成。</p>
+    `;
+  }
+
+  // 绑定 Badge 点击
+  document.querySelectorAll('.badge[data-sector]').forEach(b => {
+    b.addEventListener('click', () => openDrawer(b.dataset.sector));
+  });
+</script>
+</body>
+</html>
