@@ -235,7 +235,12 @@ interface BadgeProps {
 
 export function ClickableSectorBadge({ name, onClick }: BadgeProps) {
   return (
-    <span onClick={() => onClick(name)} style={{
+    <span
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick(name)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(name) } }}
+      style={{
       fontSize: 11, padding: '2px 8px', borderRadius: 3,
       background: 'rgba(91,91,214,0.18)', color: '#a8a4ff',
       border: '1px dashed transparent',
